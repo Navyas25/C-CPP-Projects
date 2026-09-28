@@ -3,28 +3,37 @@ using namespace std;
 
 bool isValidMove(int board[9][9], int row, int col, int num) {
 
-    // Check row
     for (int j = 0; j < 9; j++) {
         if (board[row][j] == num) {
             return false;
         }
     }
 
-    // Check column
     for (int i = 0; i < 9; i++) {
         if (board[i][col] == num) {
             return false;
         }
     }
 
-    // Find starting position of 3x3 box
     int startRow = row - row % 3;
     int startCol = col - col % 3;
 
-    // Check 3x3 box
     for (int i = startRow; i < startRow + 3; i++) {
         for (int j = startCol; j < startCol + 3; j++) {
             if (board[i][j] == num) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool isComplete(int board[9][9]) {
+
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (board[i][j] == 0) {
                 return false;
             }
         }
@@ -83,37 +92,64 @@ int main() {
     cout << "         SUDOKU\n";
     cout << "=========================\n";
 
-    displayBoard(board);
+    while (!isComplete(board)) {
 
-    int row, col, num;
+        displayBoard(board);
 
-    cout << "\nEnter row (1-9): ";
-    cin >> row;
+        int row, col, num;
 
-    cout << "Enter column (1-9): ";
-    cin >> col;
+        cout << "\nEnter row (1-9) or -1 to quit: ";
+        cin >> row;
 
-    cout << "Enter number (1-9): ";
-    cin >> num;
+        if (row == -1) {
+            cout << "\nGame exited.\n";
+            break;
+        }
 
-    row--;
-    col--;
+        cout << "Enter column (1-9): ";
+        cin >> col;
 
-    if (board[row][col] != 0) {
-        cout << "\nThat cell is already filled!\n";
+        cout << "Enter number (1-9): ";
+        cin >> num;
+
+        if (row < 1 || row > 9 ||
+            col < 1 || col > 9 ||
+            num < 1 || num > 9) {
+
+            cout << "\nInvalid input! Try again.\n";
+            continue;
+        }
+
+        row--;
+        col--;
+
+        if (board[row][col] != 0) {
+
+            cout << "\nThat cell is already filled!\n";
+            continue;
+        }
+
+        if (isValidMove(board, row, col, num)) {
+
+            board[row][col] = num;
+            cout << "\nMove accepted!\n";
+
+        }
+        else {
+
+            cout << "\nInvalid move! That number already exists in "
+                 << "the row, column, or 3x3 box.\n";
+        }
     }
-    else if (isValidMove(board, row, col, num)) {
 
-        board[row][col] = num;
+    if (isComplete(board)) {
 
-        cout << "\nMove accepted!\n";
+        displayBoard(board);
 
+        cout << "\n=========================\n";
+        cout << "     SUDOKU COMPLETED!\n";
+        cout << "=========================\n";
     }
-    else {
-        cout << "\nInvalid move!\n";
-    }
-
-    displayBoard(board);
 
     return 0;
 }
