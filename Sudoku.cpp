@@ -1,47 +1,6 @@
 #include <iostream>
 using namespace std;
 
-bool isValidMove(int board[9][9], int row, int col, int num) {
-
-    for (int j = 0; j < 9; j++) {
-        if (board[row][j] == num) {
-            return false;
-        }
-    }
-
-    for (int i = 0; i < 9; i++) {
-        if (board[i][col] == num) {
-            return false;
-        }
-    }
-
-    int startRow = row - row % 3;
-    int startCol = col - col % 3;
-
-    for (int i = startRow; i < startRow + 3; i++) {
-        for (int j = startCol; j < startCol + 3; j++) {
-            if (board[i][j] == num) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-bool isComplete(int board[9][9]) {
-
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
-            if (board[i][j] == 0) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
 void displayBoard(int board[9][9]) {
 
     cout << "\n+-------+-------+-------+\n";
@@ -72,9 +31,23 @@ void displayBoard(int board[9][9]) {
     }
 }
 
+bool isComplete(int board[9][9]) {
+
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+
+            if (board[i][j] == 0) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 int main() {
 
-    int board[9][9] = {
+    int puzzle[9][9] = {
         {5, 3, 0, 0, 7, 0, 0, 0, 0},
         {6, 0, 0, 1, 9, 5, 0, 0, 0},
         {0, 9, 8, 0, 0, 0, 0, 6, 0},
@@ -87,6 +60,29 @@ int main() {
         {0, 0, 0, 4, 1, 9, 0, 0, 5},
         {0, 0, 0, 0, 8, 0, 0, 7, 9}
     };
+
+    int solution[9][9] = {
+        {5, 3, 4, 6, 7, 8, 9, 1, 2},
+        {6, 7, 2, 1, 9, 5, 3, 4, 8},
+        {1, 9, 8, 3, 4, 2, 5, 6, 7},
+
+        {8, 5, 9, 7, 6, 1, 4, 2, 3},
+        {4, 2, 6, 8, 5, 3, 7, 9, 1},
+        {7, 1, 3, 9, 2, 4, 8, 5, 6},
+
+        {9, 6, 1, 5, 3, 7, 2, 8, 4},
+        {2, 8, 7, 4, 1, 9, 6, 3, 5},
+        {3, 4, 5, 2, 8, 6, 1, 7, 9}
+    };
+
+    int board[9][9];
+
+    // Copy puzzle into player board
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            board[i][j] = puzzle[i][j];
+        }
+    }
 
     cout << "=========================\n";
     cout << "         SUDOKU\n";
@@ -103,7 +99,7 @@ int main() {
 
         if (row == -1) {
             cout << "\nGame exited.\n";
-            break;
+            return 0;
         }
 
         cout << "Enter column (1-9): ";
@@ -123,33 +119,32 @@ int main() {
         row--;
         col--;
 
-        if (board[row][col] != 0) {
+        // Check whether the cell was originally filled
+        if (puzzle[row][col] != 0) {
 
-            cout << "\nThat cell is already filled!\n";
+            cout << "\nYou cannot change an original number!\n";
             continue;
         }
 
-        if (isValidMove(board, row, col, num)) {
+        // Check answer against solution
+        if (solution[row][col] == num) {
 
             board[row][col] = num;
-            cout << "\nMove accepted!\n";
+
+            cout << "\nCorrect!\n";
 
         }
         else {
 
-            cout << "\nInvalid move! That number already exists in "
-                 << "the row, column, or 3x3 box.\n";
+            cout << "\nWrong number! Try again.\n";
         }
     }
 
-    if (isComplete(board)) {
+    displayBoard(board);
 
-        displayBoard(board);
-
-        cout << "\n=========================\n";
-        cout << "     SUDOKU COMPLETED!\n";
-        cout << "=========================\n";
-    }
+    cout << "\n=========================\n";
+    cout << "     SUDOKU COMPLETED!\n";
+    cout << "=========================\n";
 
     return 0;
 }
