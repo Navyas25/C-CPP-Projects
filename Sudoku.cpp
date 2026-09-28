@@ -1,35 +1,8 @@
 #include <iostream>
+#include <algorithm>
+#include <random>
+
 using namespace std;
-
-void displayBoard(int board[9][9]) {
-
-    cout << "\n+-------+-------+-------+\n";
-
-    for (int i = 0; i < 9; i++) {
-
-        cout << "| ";
-
-        for (int j = 0; j < 9; j++) {
-
-            if (board[i][j] == 0) {
-                cout << ". ";
-            }
-            else {
-                cout << board[i][j] << " ";
-            }
-
-            if ((j + 1) % 3 == 0) {
-                cout << "| ";
-            }
-        }
-
-        cout << "\n";
-
-        if ((i + 1) % 3 == 0) {
-            cout << "+-------+-------+-------+\n";
-        }
-    }
-}
 
 bool isSafe(int board[9][9], int row, int col, int num) {
 
@@ -63,7 +36,7 @@ bool isSafe(int board[9][9], int row, int col, int num) {
     return true;
 }
 
-bool solveSudoku(int board[9][9]) {
+bool solveSudoku(int board[9][9], mt19937& rng) {
 
     int row = -1;
     int col = -1;
@@ -78,7 +51,6 @@ bool solveSudoku(int board[9][9]) {
 
                 row = i;
                 col = j;
-
                 emptyFound = true;
 
                 break;
@@ -94,13 +66,21 @@ bool solveSudoku(int board[9][9]) {
         return true;
     }
 
-    for (int num = 1; num <= 9; num++) {
+    int numbers[9] = {
+        1, 2, 3, 4, 5, 6, 7, 8, 9
+    };
+
+    shuffle(numbers, numbers + 9, rng);
+
+    for (int i = 0; i < 9; i++) {
+
+        int num = numbers[i];
 
         if (isSafe(board, row, col, num)) {
 
             board[row][col] = num;
 
-            if (solveSudoku(board)) {
+            if (solveSudoku(board, rng)) {
                 return true;
             }
 
@@ -109,6 +89,66 @@ bool solveSudoku(int board[9][9]) {
     }
 
     return false;
+}
+
+void generatePuzzle(
+    int solution[9][9],
+    int puzzle[9][9],
+    int cellsToRemove,
+    mt19937& rng
+) {
+
+    for (int i = 0; i < 9; i++) {
+
+        for (int j = 0; j < 9; j++) {
+
+            puzzle[i][j] = solution[i][j];
+        }
+    }
+
+    int removed = 0;
+
+    while (removed < cellsToRemove) {
+
+        int row = rng() % 9;
+        int col = rng() % 9;
+
+        if (puzzle[row][col] != 0) {
+
+            puzzle[row][col] = 0;
+            removed++;
+        }
+    }
+}
+
+void displayBoard(int board[9][9]) {
+
+    cout << "\n+-------+-------+-------+\n";
+
+    for (int i = 0; i < 9; i++) {
+
+        cout << "| ";
+
+        for (int j = 0; j < 9; j++) {
+
+            if (board[i][j] == 0) {
+                cout << ". ";
+            }
+            else {
+                cout << board[i][j] << " ";
+            }
+
+            if ((j + 1) % 3 == 0) {
+                cout << "| ";
+            }
+        }
+
+        cout << "\n";
+
+        if ((i + 1) % 3 == 0) {
+            cout << "+-------+-------+-------+\n";
+        }
+    }
 }
 
 bool isComplete(int board[9][9]) {
@@ -128,41 +168,59 @@ bool isComplete(int board[9][9]) {
 
 int main() {
 
-    int puzzle[9][9] = {
-        {5, 3, 0, 0, 7, 0, 0, 0, 0},
-        {6, 0, 0, 1, 9, 5, 0, 0, 0},
-        {0, 9, 8, 0, 0, 0, 0, 6, 0},
+    random_device rd;
+    mt19937 rng(rd());
 
-        {8, 0, 0, 0, 6, 0, 0, 0, 3},
-        {4, 0, 0, 8, 0, 3, 0, 0, 1},
-        {7, 0, 0, 0, 2, 0, 0, 0, 6},
+    int solution[9][9] = {};
 
-        {0, 6, 0, 0, 0, 0, 2, 8, 0},
-        {0, 0, 0, 4, 1, 9, 0, 0, 5},
-        {0, 0, 0, 0, 8, 0, 0, 7, 9}
-    };
+    if (!solveSudoku(solution, rng)) {
 
-    int solution[9][9];
-
-    // Copy puzzle into solution
-    for (int i = 0; i < 9; i++) {
-
-        for (int j = 0; j < 9; j++) {
-
-            solution[i][j] = puzzle[i][j];
-        }
-    }
-
-    // Solve the copied board
-    if (!solveSudoku(solution)) {
-
-        cout << "This puzzle has no solution.\n";
+        cout << "Could not generate Sudoku.\n";
         return 0;
     }
 
+    int difficulty;
+
+    cout << "=========================\n";
+    cout << "         SUDOKU\n";
+    cout << "=========================\n";
+
+    cout << "\nChoose difficulty:\n";
+    cout << "1. Easy\n";
+    cout << "2. Medium\n";
+    cout << "3. Hard\n";
+    cout << "\nEnter choice: ";
+
+    cin >> difficulty;
+
+    int cellsToRemove;
+
+    if (difficulty == 1) {
+        cellsToRemove = 35;
+    }
+    else if (difficulty == 2) {
+        cellsToRemove = 45;
+    }
+    else if (difficulty == 3) {
+        cellsToRemove = 55;
+    }
+    else {
+
+        cout << "\nInvalid choice!\n";
+        return 0;
+    }
+
+    int puzzle[9][9];
+
+    generatePuzzle(
+        solution,
+        puzzle,
+        cellsToRemove,
+        rng
+    );
+
     int board[9][9];
 
-    // Copy puzzle into player's board
     for (int i = 0; i < 9; i++) {
 
         for (int j = 0; j < 9; j++) {
@@ -171,9 +229,7 @@ int main() {
         }
     }
 
-    cout << "=========================\n";
-    cout << "         SUDOKU\n";
-    cout << "=========================\n";
+    cout << "\nYour Sudoku:\n";
 
     while (!isComplete(board)) {
 
@@ -202,7 +258,7 @@ int main() {
             col < 1 || col > 9 ||
             num < 1 || num > 9) {
 
-            cout << "\nInvalid input! Try again.\n";
+            cout << "\nInvalid input!\n";
             continue;
         }
 
