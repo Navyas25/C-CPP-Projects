@@ -1,45 +1,4 @@
-#include <iostream>
-#include <algorithm>
-#include <random>
 
-using namespace std;
-
-bool isSafe(int board[9][9], int row, int col, int num) {
-
-    for (int j = 0; j < 9; j++) {
-
-        if (board[row][j] == num) {
-            return false;
-        }
-    }
-
-    for (int i = 0; i < 9; i++) {
-
-        if (board[i][col] == num) {
-            return false;
-        }
-    }
-
-    int startRow = row - row % 3;
-    int startCol = col - col % 3;
-
-    for (int i = startRow; i < startRow + 3; i++) {
-
-        for (int j = startCol; j < startCol + 3; j++) {
-
-            if (board[i][j] == num) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-bool solveSudoku(int board[9][9], mt19937& rng) {
-
-    int row = -1;
-    int col = -1;
 
     bool emptyFound = false;
 
