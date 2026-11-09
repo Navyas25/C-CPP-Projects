@@ -13,533 +13,599 @@ const int CELL_SIZE = 30;
 const int WINDOW_WIDTH = 500;
 const int WINDOW_HEIGHT = 650;
 
-int board[ROWS][COLS] = {};
+// Piece colors
+sf::Color getColor(int index) {
+    sf::Color colors[7] = {
+        sf::Color::Cyan,
+        sf::Color::Blue,
+        sf::Color(255, 165, 0),
+        sf::Color::Yellow,
+        sf::Color::Green,
+        sf::Color::Magenta,
+        sf::Color::Red
+    };
 
-int shapes[7][4][4] = {
+    return colors[index];
+}
 
-    // I
-    {
-        {0, 0, 0, 0},
-        {1, 1, 1, 1},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0}
-    },
+// Background colors for each level
+sf::Color getBackground(int level) {
+    sf::Color backgrounds[6] = {
+        sf::Color(20, 25, 45),
+        sf::Color(35, 25, 55),
+        sf::Color(20, 45, 55),
+        sf::Color(55, 30, 35),
+        sf::Color(45, 45, 20),
+        sf::Color(55, 25, 55)
+    };
 
-    // O
-    {
-        {1, 1, 0, 0},
-        {1, 1, 0, 0},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0}
-    },
+    return backgrounds[level - 1];
+}
 
-    // T
-    {
-        {0, 1, 0, 0},
-        {1, 1, 1, 0},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0}
-    },
+class Tetromino {
 
-    // S
-    {
-        {0, 1, 1, 0},
-        {1, 1, 0, 0},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0}
-    },
+private:
 
-    // Z
-    {
-        {1, 1, 0, 0},
-        {0, 1, 1, 0},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0}
-    },
+    inline static const int shapes[7][4][4] = {
 
-    // J
-    {
-        {1, 0, 0, 0},
-        {1, 1, 1, 0},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0}
-    },
+        {
+            {0, 0, 0, 0},
+            {1, 1, 1, 1},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0}
+        },
 
-    // L
-    {
-        {0, 0, 1, 0},
-        {1, 1, 1, 0},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0}
+        {
+            {1, 0, 0, 0},
+            {1, 1, 1, 0},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0}
+        },
+
+        {
+            {0, 0, 1, 0},
+            {1, 1, 1, 0},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0}
+        },
+
+        {
+            {0, 1, 1, 0},
+            {0, 1, 1, 0},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0}
+        },
+
+        {
+            {0, 1, 1, 0},
+            {1, 1, 0, 0},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0}
+        },
+
+        {
+            {0, 1, 0, 0},
+            {1, 1, 1, 0},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0}
+        },
+
+        {
+            {1, 1, 0, 0},
+            {0, 1, 1, 0},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0}
+        }
+
+    };
+
+    int shape[4][4]{};
+    int colorIndex = 0;
+
+    int row = 0;
+    int col = 3;
+
+public:
+
+    void setType(int type) {
+
+        colorIndex = type;
+
+        row = 0;
+        col = 3;
+
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++) {
+                shape[r][c] = shapes[type][r][c];
+            }
+        }
     }
+
+    int getCell(int r, int c) const {
+        return shape[r][c];
+    }
+
+    int getColor() const {
+        return colorIndex;
+    }
+
+    int getRow() const {
+        return row;
+    }
+
+    int getCol() const {
+        return col;
+    }
+
+    void setPosition(int newRow, int newCol) {
+        row = newRow;
+        col = newCol;
+    }
+
+    void move(int rowChange, int colChange) {
+        row += rowChange;
+        col += colChange;
+    }
+
+    void rotate() {
+
+        int rotated[4][4] = {};
+
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++) {
+
+                rotated[c][3 - r] = shape[r][c];
+
+            }
+        }
+
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++) {
+
+                shape[r][c] = rotated[r][c];
+
+            }
+        }
+    }
+
 };
 
-sf::Color colors[7] = {
-    sf::Color::Cyan,
-    sf::Color::Yellow,
-    sf::Color(180, 70, 255),
-    sf::Color::Green,
-    sf::Color::Red,
-    sf::Color::Blue,
-    sf::Color(255, 140, 0)
+class Board {
+
+private:
+
+    int grid[ROWS][COLS] = {};
+
+public:
+
+    bool canPlace(const Tetromino& piece) const {
+
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++) {
+
+                if (piece.getCell(r, c) == 1) {
+
+                    int newRow = piece.getRow() + r;
+                    int newCol = piece.getCol() + c;
+
+                    if (newRow < 0 || newRow >= ROWS ||
+                        newCol < 0 || newCol >= COLS) {
+
+                        return false;
+                    }
+
+                    if (grid[newRow][newCol] != 0) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    void lockPiece(const Tetromino& piece) {
+
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++) {
+
+                if (piece.getCell(r, c) == 1) {
+
+                    int boardRow = piece.getRow() + r;
+                    int boardCol = piece.getCol() + c;
+
+                    if (boardRow >= 0 && boardRow < ROWS &&
+                        boardCol >= 0 && boardCol < COLS) {
+
+                        grid[boardRow][boardCol] =
+                            piece.getColor() + 1;
+                    }
+                }
+            }
+        }
+    }
+
+    int clearLines() {
+
+        int cleared = 0;
+        int writeRow = ROWS - 1;
+
+        for (int r = ROWS - 1; r >= 0; r--) {
+
+            bool full = true;
+
+            for (int c = 0; c < COLS; c++) {
+
+                if (grid[r][c] == 0) {
+                    full = false;
+                    break;
+                }
+            }
+
+            if (full) {
+                cleared++;
+            }
+            else {
+
+                for (int c = 0; c < COLS; c++) {
+                    grid[writeRow][c] = grid[r][c];
+                }
+
+                writeRow--;
+            }
+        }
+
+        while (writeRow >= 0) {
+
+            for (int c = 0; c < COLS; c++) {
+                grid[writeRow][c] = 0;
+            }
+
+            writeRow--;
+        }
+
+        return cleared;
+    }
+
+    void draw(sf::RenderWindow& window) const {
+
+        for (int r = 0; r < ROWS; r++) {
+            for (int c = 0; c < COLS; c++) {
+
+                if (grid[r][c] != 0) {
+
+                    sf::RectangleShape cell(
+                        sf::Vector2f(CELL_SIZE - 1, CELL_SIZE - 1)
+                    );
+
+                    cell.setPosition({
+                        100.0f + c * CELL_SIZE,
+                        30.0f + r * CELL_SIZE
+                    });
+
+                    cell.setFillColor(getColor(grid[r][c] - 1));
+
+                    window.draw(cell);
+                }
+            }
+        }
+    }
+
 };
 
-// Background colours for each level
-sf::Color backgrounds[6] = {
-    sf::Color(15, 15, 35),
-    sf::Color(35, 15, 45),
-    sf::Color(15, 35, 45),
-    sf::Color(45, 20, 20),
-    sf::Color(35, 30, 15),
-    sf::Color(20, 15, 45)
-};
+class Game {
 
-int currentShape;
-int currentMatrix[4][4];
+private:
 
-int shapeRow;
-int shapeCol;
+    sf::RenderWindow window;
 
-int score = 0;
-int level = 1;
+    Board board;
+    Tetromino currentPiece;
 
-float fallDelay = 0.6f;
+    int score = 0;
+    int level = 1;
 
-bool gameOver = false;
-bool levelChanged = false;
+    float fallDelay = 0.6f;
 
-sf::Clock levelEffectClock;
+    bool gameOver = false;
+    bool levelChanged = false;
 
-// --------------------------------------------------
-// COLLISION DETECTION
-// --------------------------------------------------
+    sf::Clock fallClock;
+    sf::Clock levelClock;
 
-bool canPlace(int newRow, int newCol, int matrix[4][4]) {
+    void spawnPiece() {
 
-    for (int row = 0; row < 4; row++) {
+        int randomType = rand() % 7;
 
-        for (int col = 0; col < 4; col++) {
+        currentPiece.setType(randomType);
 
-            if (matrix[row][col] == 1) {
-
-                int boardRow = newRow + row;
-                int boardCol = newCol + col;
-
-                if (boardRow < 0 || boardRow >= ROWS ||
-                    boardCol < 0 || boardCol >= COLS) {
-                    return false;
-                }
-
-                if (board[boardRow][boardCol] != 0) {
-                    return false;
-                }
-            }
+        if (!board.canPlace(currentPiece)) {
+            gameOver = true;
         }
     }
 
-    return true;
-}
+    void updateLevel() {
 
-// --------------------------------------------------
-// SPAWN SHAPE
-// --------------------------------------------------
+        int newLevel = score / 500 + 1;
 
-void spawnShape() {
-
-    currentShape = rand() % 7;
-
-    for (int row = 0; row < 4; row++) {
-
-        for (int col = 0; col < 4; col++) {
-
-            currentMatrix[row][col] = shapes[currentShape][row][col];
-        }
-    }
-
-    shapeRow = 0;
-    shapeCol = 3;
-
-    if (!canPlace(shapeRow, shapeCol, currentMatrix)) {
-        gameOver = true;
-    }
-}
-
-// --------------------------------------------------
-// UPDATE LEVEL
-// --------------------------------------------------
-
-void updateLevel() {
-
-    int newLevel = (score / 500) + 1;
-
-    if (newLevel > 6) {
-        newLevel = 6;
-    }
-
-    if (newLevel != level) {
-
-        level = newLevel;
-
-        fallDelay = 0.6f - (level - 1) * 0.08f;
-
-        if (fallDelay < 0.12f) {
-            fallDelay = 0.12f;
+        if (newLevel > 6) {
+            newLevel = 6;
         }
 
-        levelChanged = true;
-        levelEffectClock.restart();
-    }
-}
+        if (newLevel > level) {
 
-// --------------------------------------------------
-// LOCK SHAPE
-// --------------------------------------------------
+            level = newLevel;
 
-void lockShape() {
+            fallDelay = 0.6f - (level - 1) * 0.08f;
 
-    for (int row = 0; row < 4; row++) {
-
-        for (int col = 0; col < 4; col++) {
-
-            if (currentMatrix[row][col] == 1) {
-
-                int boardRow = shapeRow + row;
-                int boardCol = shapeCol + col;
-
-                if (boardRow >= 0 && boardRow < ROWS &&
-                    boardCol >= 0 && boardCol < COLS) {
-
-                    board[boardRow][boardCol] = currentShape + 1;
-                }
-            }
-        }
-    }
-}
-
-// --------------------------------------------------
-// CLEAR LINES
-// --------------------------------------------------
-
-void clearLines() {
-
-    for (int row = ROWS - 1; row >= 0; row--) {
-
-        bool fullLine = true;
-
-        for (int col = 0; col < COLS; col++) {
-
-            if (board[row][col] == 0) {
-                fullLine = false;
-                break;
-            }
-        }
-
-        if (fullLine) {
-
-            score += 100;
-
-            for (int moveRow = row; moveRow > 0; moveRow--) {
-
-                for (int col = 0; col < COLS; col++) {
-
-                    board[moveRow][col] = board[moveRow - 1][col];
-                }
+            if (fallDelay < 0.12f) {
+                fallDelay = 0.12f;
             }
 
-            for (int col = 0; col < COLS; col++) {
-                board[0][col] = 0;
-            }
-
-            updateLevel();
-
-            row++;
-        }
-    }
-}
-
-// --------------------------------------------------
-// MOVE DOWN
-// --------------------------------------------------
-
-void moveDown() {
-
-    if (canPlace(shapeRow + 1, shapeCol, currentMatrix)) {
-
-        shapeRow++;
-    }
-    else {
-
-        lockShape();
-        clearLines();
-        spawnShape();
-    }
-}
-
-// --------------------------------------------------
-// ROTATE SHAPE
-// --------------------------------------------------
-
-void rotateShape() {
-
-    int rotated[4][4] = {};
-
-    for (int row = 0; row < 4; row++) {
-
-        for (int col = 0; col < 4; col++) {
-
-            rotated[col][3 - row] = currentMatrix[row][col];
+            levelChanged = true;
+            levelClock.restart();
         }
     }
 
-    if (canPlace(shapeRow, shapeCol, rotated)) {
+    void updateWindowTitle() {
 
-        for (int row = 0; row < 4; row++) {
+        string title = "Tetris | Score: " +
+                       to_string(score) +
+                       " | Level: " +
+                       to_string(level);
 
-            for (int col = 0; col < 4; col++) {
-
-                currentMatrix[row][col] = rotated[row][col];
-            }
+        if (gameOver) {
+            title = "GAME OVER | Final Score: " +
+                    to_string(score);
         }
-    }
-}
+        else if (levelChanged &&
+                 levelClock.getElapsedTime().asSeconds() < 1.5f) {
 
-// --------------------------------------------------
-// DRAW CELL
-// --------------------------------------------------
-
-void drawCell(sf::RenderWindow& window, int row, int col, sf::Color color) {
-
-    sf::RectangleShape cell(sf::Vector2f(
-        CELL_SIZE - 1,
-        CELL_SIZE - 1
-    ));
-
-    cell.setPosition(sf::Vector2f(
-        100 + col * CELL_SIZE,
-        20 + row * CELL_SIZE
-    ));
-
-    cell.setFillColor(color);
-
-    window.draw(cell);
-}
-
-// --------------------------------------------------
-// DRAW BOARD
-// --------------------------------------------------
-
-void drawBoard(sf::RenderWindow& window) {
-
-    // Draw settled blocks
-    for (int row = 0; row < ROWS; row++) {
-
-        for (int col = 0; col < COLS; col++) {
-
-            if (board[row][col] != 0) {
-
-                drawCell(
-                    window,
-                    row,
-                    col,
-                    colors[board[row][col] - 1]
-                );
-            }
-        }
-    }
-
-    // Draw current falling shape
-    for (int row = 0; row < 4; row++) {
-
-        for (int col = 0; col < 4; col++) {
-
-            if (currentMatrix[row][col] == 1) {
-
-                drawCell(
-                    window,
-                    shapeRow + row,
-                    shapeCol + col,
-                    colors[currentShape]
-                );
-            }
-        }
-    }
-
-    // Draw border
-    sf::RectangleShape border(
-        sf::Vector2f(COLS * CELL_SIZE, ROWS * CELL_SIZE)
-    );
-
-    border.setPosition(sf::Vector2f(100, 20));
-    border.setFillColor(sf::Color::Transparent);
-    border.setOutlineColor(sf::Color::White);
-    border.setOutlineThickness(2);
-
-    window.draw(border);
-}
-
-// --------------------------------------------------
-// DRAW GRID
-// --------------------------------------------------
-
-void drawGrid(sf::RenderWindow& window) {
-
-    sf::RectangleShape line;
-
-    line.setFillColor(sf::Color(55, 55, 65));
-
-    // Vertical lines
-    for (int col = 0; col <= COLS; col++) {
-
-        line.setSize(sf::Vector2f(1, ROWS * CELL_SIZE));
-
-        line.setPosition(sf::Vector2f(
-            100 + col * CELL_SIZE,
-            20
-        ));
-
-        window.draw(line);
-    }
-
-    // Horizontal lines
-    for (int row = 0; row <= ROWS; row++) {
-
-        line.setSize(sf::Vector2f(COLS * CELL_SIZE, 1));
-
-        line.setPosition(sf::Vector2f(
-            100,
-            20 + row * CELL_SIZE
-        ));
-
-        window.draw(line);
-    }
-}
-
-// --------------------------------------------------
-// UPDATE WINDOW TITLE
-// --------------------------------------------------
-
-void updateWindowTitle(sf::RenderWindow& window) {
-
-    string title = "TETRIS | Score: " + to_string(score) +
-                   " | Level: " + to_string(level);
-
-    if (levelChanged) {
-
-        if (levelEffectClock.getElapsedTime().asSeconds() < 1.5f) {
             title += " | LEVEL UP!";
         }
         else {
             levelChanged = false;
         }
+
+        window.setTitle(title);
     }
 
-    if (gameOver) {
-        title = "GAME OVER | Final Score: " + to_string(score) +
-                " | Level: " + to_string(level);
+    void lockCurrentPiece() {
+
+        board.lockPiece(currentPiece);
+
+        int lines = board.clearLines();
+
+        score += lines * 100;
+
+        updateLevel();
+
+        spawnPiece();
     }
 
-    window.setTitle(title);
-}
+    void moveDown() {
 
-// --------------------------------------------------
-// MAIN
-// --------------------------------------------------
+        currentPiece.move(1, 0);
 
-int main() {
+        if (!board.canPlace(currentPiece)) {
 
-    srand(static_cast<unsigned int>(time(nullptr)));
+            currentPiece.move(-1, 0);
 
-    sf::RenderWindow window(
-        sf::VideoMode(sf::Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT)),
-        "TETRIS - PROGRESSIVE DIFFICULTY"
-    );
+            lockCurrentPiece();
+        }
+    }
 
-    window.setFramerateLimit(60);
+    void moveHorizontal(int direction) {
 
-    spawnShape();
+        currentPiece.move(0, direction);
 
-    sf::Clock clock;
+        if (!board.canPlace(currentPiece)) {
+            currentPiece.move(0, -direction);
+        }
+    }
 
-    float fallTimer = 0;
+    void rotatePiece() {
 
-    while (window.isOpen()) {
+        currentPiece.rotate();
 
-        // Handle events
+        if (!board.canPlace(currentPiece)) {
+
+            for (int i = 0; i < 3; i++) {
+                currentPiece.rotate();
+            }
+        }
+    }
+
+    void hardDrop() {
+
+        while (true) {
+
+            currentPiece.move(1, 0);
+
+            if (!board.canPlace(currentPiece)) {
+
+                currentPiece.move(-1, 0);
+                break;
+            }
+        }
+
+        lockCurrentPiece();
+    }
+
+    void handleEvents() {
+
         while (auto event = window.pollEvent()) {
 
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
 
-            if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
+            if (auto* key =
+                event->getIf<sf::Event::KeyPressed>()) {
 
-                if (!gameOver) {
+                if (gameOver) {
+                    continue;
+                }
 
-                    if (key->code == sf::Keyboard::Key::Left) {
+                switch (key->code) {
 
-                        if (canPlace(shapeRow, shapeCol - 1, currentMatrix)) {
-                            shapeCol--;
-                        }
-                    }
+                    case sf::Keyboard::Key::Left:
+                        moveHorizontal(-1);
+                        break;
 
-                    else if (key->code == sf::Keyboard::Key::Right) {
+                    case sf::Keyboard::Key::Right:
+                        moveHorizontal(1);
+                        break;
 
-                        if (canPlace(shapeRow, shapeCol + 1, currentMatrix)) {
-                            shapeCol++;
-                        }
-                    }
+                    case sf::Keyboard::Key::Up:
+                        rotatePiece();
+                        break;
 
-                    else if (key->code == sf::Keyboard::Key::Up) {
+                    case sf::Keyboard::Key::Space:
+                        hardDrop();
+                        break;
 
-                        rotateShape();
-                    }
-
-                    else if (key->code == sf::Keyboard::Key::Space) {
-
-                        while (canPlace(shapeRow + 1, shapeCol, currentMatrix)) {
-                            shapeRow++;
-                        }
-
-                        moveDown();
-                    }
+                    default:
+                        break;
                 }
             }
         }
-
-        float deltaTime = clock.restart().asSeconds();
-
-        if (!gameOver) {
-
-            fallTimer += deltaTime;
-
-            if (fallTimer >= fallDelay) {
-
-                moveDown();
-                fallTimer = 0;
-            }
-
-            // Faster falling with down arrow
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) {
-
-                if (fallTimer >= 0.05f) {
-
-                    moveDown();
-                    fallTimer = 0;
-                }
-            }
-        }
-
-        // Update title
-        updateWindowTitle(window);
-
-        // Change background according to level
-        window.clear(backgrounds[level - 1]);
-
-        drawGrid(window);
-        drawBoard(window);
-
-        window.display();
     }
+
+    void update() {
+
+        if (gameOver) {
+            return;
+        }
+
+        float currentDelay = fallDelay;
+
+        if (sf::Keyboard::isKeyPressed(
+                sf::Keyboard::Key::Down)) {
+
+            currentDelay = 0.05f;
+        }
+
+        if (fallClock.getElapsedTime().asSeconds()
+            >= currentDelay) {
+
+            moveDown();
+
+            fallClock.restart();
+        }
+    }
+
+    void drawPiece() {
+
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++) {
+
+                if (currentPiece.getCell(r, c) == 1) {
+
+                    sf::RectangleShape cell(
+                        sf::Vector2f(CELL_SIZE - 1, CELL_SIZE - 1)
+                    );
+
+                    int x = currentPiece.getCol() + c;
+                    int y = currentPiece.getRow() + r;
+
+                    cell.setPosition({
+                        100.0f + x * CELL_SIZE,
+                        30.0f + y * CELL_SIZE
+                    });
+
+                    cell.setFillColor(
+                        getColor(currentPiece.getColor())
+                    );
+
+                    window.draw(cell);
+                }
+            }
+        }
+    }
+
+    void drawGrid() {
+
+        sf::RectangleShape line;
+
+        line.setFillColor(sf::Color(70, 70, 85));
+
+        for (int r = 0; r <= ROWS; r++) {
+
+            line.setSize({
+                static_cast<float>(COLS * CELL_SIZE),
+                1.0f
+            });
+
+            line.setPosition({
+                100.0f,
+                30.0f + r * CELL_SIZE
+            });
+
+            window.draw(line);
+        }
+
+        for (int c = 0; c <= COLS; c++) {
+
+            line.setSize({
+                1.0f,
+                static_cast<float>(ROWS * CELL_SIZE)
+            });
+
+            line.setPosition({
+                100.0f + c * CELL_SIZE,
+                30.0f
+            });
+
+            window.draw(line);
+        }
+    }
+
+public:
+
+    Game() :
+        window(
+            sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}),
+            "Tetris"
+        ) {
+
+        window.setFramerateLimit(60);
+
+        srand(static_cast<unsigned int>(time(nullptr)));
+
+        spawnPiece();
+    }
+
+    void run() {
+
+        while (window.isOpen()) {
+
+            handleEvents();
+
+            update();
+
+            updateWindowTitle();
+
+            window.clear(getBackground(level));
+
+            board.draw(window);
+
+            drawPiece();
+
+            drawGrid();
+
+            window.display();
+        }
+    }
+
+};
+
+int main() {
+
+    Game game;
+
+    game.run();
 
     return 0;
 }
+
